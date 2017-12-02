@@ -5,6 +5,7 @@ PartyTime/[Bb]uild/
 PartyTime/[Bb]uilds/
 PartyTime/Assets/AssetStoreTools*
 PartyTime/UnityPackageManager/
+PartyTime/.vs/
 
 # Visual Studio 2015 cache directory
 /.vs/
