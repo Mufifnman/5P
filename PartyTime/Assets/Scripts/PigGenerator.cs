@@ -10,7 +10,7 @@ public class PigGenerator : MonoBehaviour
 	// Use this for initialization
 	void Start ()
     {
-        currentPig = Instantiate<GameObject>(PigPrefab);
+        currentPig = Instantiate<GameObject>(PigPrefab, this.transform);
 	}
 	
 	// Update is called once per frame
