@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using VRTK;
 
 public class Cycle : MonoBehaviour {
     public static string[] choices = new string[] {
@@ -11,8 +12,9 @@ public class Cycle : MonoBehaviour {
     };
 
     public Text text;
-    public GameObject start_button;
-    public GameObject end_button;
+    //public VRTK.UnityEventHelper.VRTK_Button_UnityEvents start_button;
+    public VRTK_Button start_button;
+    public VRTK_Button end_button;
 
 	// Use this for initialization
 	void Start ()
@@ -27,19 +29,23 @@ public class Cycle : MonoBehaviour {
             throw new InvalidOperationException("Cycle needs to have a Text object!!!");
         }
 
+        start_button.Pushed += this.start_button_pushed;
+        end_button.Pushed += this.end_button_pushed;
 	}
 
-    void end_button_pushed()
+    void end_button_pushed(object sender, Control3DEventArgs args)
     {
-
+        text.text = "GOOD JOB!!";
+        start_button.gameObject.SetActive(true);
+        end_button.gameObject.SetActive(false);
     }
 	
-    void start_button_pushed ()
+    void start_button_pushed (object sender, Control3DEventArgs args)
     {
         string choice = choices[UnityEngine.Random.Range(0, choices.Length)];
         text.text = "Draw a " + choice + "!!!!";
-        start_button.SetActive(false);
-        end_button.SetActive(true);
+        start_button.gameObject.SetActive(false);
+        end_button.gameObject.SetActive(true);
     }
 
 	// Update is called once per frame
