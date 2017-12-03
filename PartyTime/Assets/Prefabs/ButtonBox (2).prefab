@@ -129,7 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4262389379849176}
   m_Layer: 0
-  m_Name: ButtonBox
+  m_Name: ButtonBox (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
