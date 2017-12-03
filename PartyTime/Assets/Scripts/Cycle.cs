@@ -11,6 +11,9 @@ public class Cycle : MonoBehaviour {
         "Dick"
     };
 
+    public float time = 0;
+    public bool timerOn = false;
+
     public Text text;
     //public VRTK.UnityEventHelper.VRTK_Button_UnityEvents start_button;
     public VRTK_Button start_button;
@@ -35,21 +38,36 @@ public class Cycle : MonoBehaviour {
 
     void end_button_pushed(object sender, Control3DEventArgs args)
     {
+        Debug.Log("triggered end");
         text.text = "GOOD JOB!!";
         start_button.gameObject.SetActive(true);
         end_button.gameObject.SetActive(false);
+        timerOn = false;
     }
 	
     void start_button_pushed (object sender, Control3DEventArgs args)
     {
+        Debug.Log("triggered start");
         string choice = choices[UnityEngine.Random.Range(0, choices.Length)];
         text.text = "Draw a " + choice + "!!!!";
         start_button.gameObject.SetActive(false);
         end_button.gameObject.SetActive(true);
+        time = 0;
+        timerOn = true;
     }
 
 	// Update is called once per frame
-	void Update () {
-		
+	void Update ()
+    {
+		if (timerOn)
+        {
+            time += Time.deltaTime;
+        }
 	}
+
+    void OnDestroy()
+    {
+        start_button.Pushed -= this.start_button_pushed;
+        end_button.Pushed -= this.end_button_pushed;
+    }
 }
