@@ -119,7 +119,7 @@ public class ThrowingSceneManager : MonoBehaviour
         {
             this.CreateNew(NodeExtensions.LEFT_ID);
         }
-        if (Input.GetButtonDown("MotionController-Grasp-Rgiht"))
+        if (Input.GetButtonDown("MotionController-Grasp-Right"))
         {
             this.CreateNew(NodeExtensions.RIGHT_ID);
         }
