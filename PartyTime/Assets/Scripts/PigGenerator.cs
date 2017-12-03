@@ -10,20 +10,22 @@ public class PigGenerator : MonoBehaviour
 	// Use this for initialization
 	void Start ()
     {
-        currentPig = Instantiate<GameObject>(PigPrefab);
+        for (int i = 0; i < 200; i++)
+        {
+            currentPig = Instantiate<GameObject>(PigPrefab, this.transform);
+        }
 	}
 	
 	// Update is called once per frame
 	void Update ()
     {
-		
 	}
 
     void OnClicked()
     {
         //aSSIGn CURRENT PIG TO Hands 
         // InteracitonManger.Instance.clickedHand.SetObject(currentPig);
-
+        Debug.Log("detected a click");
         currentPig = Instantiate<GameObject>(PigPrefab);
     }
 }
