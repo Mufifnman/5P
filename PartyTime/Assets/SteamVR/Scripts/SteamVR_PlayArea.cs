@@ -87,6 +87,24 @@ public class SteamVR_PlayArea : MonoBehaviour
 		return false;
 	}
 
+    public Vector3[] GetRectangle()
+    {
+        var rect = new HmdQuad_t();
+        if (!GetBounds(size, ref rect))
+            return null;
+
+        var corners = new HmdVector3_t[] { rect.vCorners0, rect.vCorners1, rect.vCorners2, rect.vCorners3 };
+
+        vertices = new Vector3[corners.Length * 2];
+        for (int i = 0; i < corners.Length; i++)
+        {
+            var c = corners[i];
+            vertices[i] = new Vector3(c.v0, 0.01f, c.v2);
+        }
+
+        return vertices;
+    }
+
 	public void BuildMesh()
 	{
 		var rect = new HmdQuad_t();

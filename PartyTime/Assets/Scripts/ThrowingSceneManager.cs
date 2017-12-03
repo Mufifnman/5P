@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
 using UnityEngine.XR.WSA.Input;
 
-public class ThrowingSceneManager : MonoBehaviour
+public class ThrowingSceneManager : ImprovedSingletonBehavior<ThrowingSceneManager>
 {
     public enum InputMode
     {
@@ -16,15 +17,68 @@ public class ThrowingSceneManager : MonoBehaviour
     public Transform RealWorldRoot;
     public InputMode inputMode = InputMode.Unity;
 
+    public GameObject PCCameraRig;
+    public Camera PCCamera;
+    public SteamVR_PlayArea steamPlayArea;
+    public float PCRigYOffset = 1.0f;
+    public float DistanceBack = 1.5f; //Todo: math t ofind out what this should be from cameraand distance between points
+    private Vector3[] bounds;
+    private int boundsIndex = 0;
+    
+    public float GripSensitivity = 0.2f;
+    private float lastGripLeft = -1.0f;
+    private float lastGripRight = -1.0f;
+
     private readonly Dictionary<uint, Transform> devices = new Dictionary<uint, Transform>();
     private readonly Dictionary<uint, int> modelIndecies = new Dictionary<uint, int>();
     private readonly Dictionary<uint, bool> isDetatched = new Dictionary<uint, bool>();
 
-    private readonly HashSet<string> trackedControllers = new HashSet<string>();
+    public float velocityModifier = 0.8f;
+
+    protected override void InitializeInternal()
+    {
+        if (inputMode == InputMode.Unity)
+        {
+            if (steamPlayArea == null)
+            {
+                throw new InvalidOperationException("Please set the SteamVR_PlayArea in the throwing Scene Manager!");
+            }
+            
+
+            bounds = steamPlayArea.GetRectangle();
+            var tempBounds = new List<Vector3>();
+            foreach (var point in bounds)
+            {
+                if (point != Vector3.zero)
+                {
+                    tempBounds.Add(point);
+                }
+            }
+            bounds = tempBounds.ToArray();
+
+            Physics.gravity = -Vector3.up * 9.8f * velocityModifier;
+        }
+
+        if (bounds == null || bounds.Length < 4)
+        { 
+            // Todo: somethign about this 
+            // Todo: give min size;
+            throw new InvalidOperationException("Neew bounds to play the throwing game!!");
+        }
+
+        if (PCCamera == null)
+        {
+            PCCamera = PCCameraRig.GetComponentInChildren<Camera>();
+        }
+
+        UpdateBoundSide(boundsIndex);
+    }
 
     // Use this for initialization
     void Start ()
     {
+        this.Initialize();
+
 		if (ThrowingAssets.Length == 0)
         {
             throw new System.Exception("ThrowingSceneManager needs to have some throwable objects!");
@@ -56,12 +110,12 @@ public class ThrowingSceneManager : MonoBehaviour
     {
         var detectedControllers = new List<string>(Input.GetJoystickNames());
 
-        Debug.Log("detected controllers: " + detectedControllers);
+        //Debug.Log("detected controllers: " + detectedControllers);
 
         // add any new controllers
         foreach (var name in detectedControllers)
         {
-            if (name.Contains("Spatial Controller")) // Motion Controllers
+            if (name.Contains("OpenVR Controller")) //|| name.Contains("Spatial Controller")) // Motion Controllers
             {
                 XRNode? nodeType = null;
 
@@ -91,6 +145,42 @@ public class ThrowingSceneManager : MonoBehaviour
         {
             UpdateUnityInput();
         }
+
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            UpdateBoundSide(boundsIndex = (boundsIndex + 1) % bounds.Length);
+        }
+        else if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            UpdateBoundSide(boundsIndex = (boundsIndex + bounds.Length - 1) % bounds.Length);
+        }
+        else if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            PCRigYOffset += 0.05f;
+            UpdateBoundSide(boundsIndex);
+        }
+        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            PCRigYOffset -= 0.05f;
+            UpdateBoundSide(boundsIndex);
+        }
+    }
+
+    public void UpdateBoundSide(int index)
+    {
+        var point1 = bounds[index];
+        var point2 = bounds[(index + 1) % bounds.Length];
+        var center = point2 - (point2 - point1) / 2.0f;
+        //center.y = this.PCRigYOffset;
+
+        DistanceBack = Mathf.Abs( (point2 - point1).magnitude / (2.0f * Mathf.Tan(Mathf.Rad2Deg * PCCamera.fieldOfView / 2)));
+        var back = Vector3.Cross(point2 - point1, Vector3.up).normalized * DistanceBack;
+
+        center.y = this.PCRigYOffset;
+        PCCameraRig.transform.position = center + back;
+        PCCameraRig.transform.rotation = Quaternion.LookRotation(-back, Vector3.up);
+
+        this.boundsIndex = index;
     }
 
     private void UpdateUnityInput()
@@ -100,8 +190,9 @@ public class ThrowingSceneManager : MonoBehaviour
         // Motion
         foreach (uint id in devices.Keys)
         {
-            var position = InputTracking.GetLocalPosition(id.GetNodeType());
-            var rotation = InputTracking.GetLocalRotation(id.GetNodeType());
+            var nodeType = id.GetNodeType();
+            var position = InputTracking.GetLocalPosition(nodeType);
+            var rotation = InputTracking.GetLocalRotation(nodeType);
 
             SetTransform(devices[id], position, rotation);
         }
@@ -115,11 +206,11 @@ public class ThrowingSceneManager : MonoBehaviour
         {
             this.CreateNew(NodeExtensions.RIGHT_ID);
         }
-        if (Input.GetButtonDown("MotionController-Grasp-Left"))
+        if (Input.GetAxis("MotionController-GraspedAmmount-Left") > GripSensitivity && lastGripLeft <= GripSensitivity)
         {
             this.CreateNew(NodeExtensions.LEFT_ID);
         }
-        if (Input.GetButtonDown("MotionController-Grasp-Right"))
+        if (Input.GetAxis("MotionController-GraspedAmmount-Right") > GripSensitivity && lastGripRight <= GripSensitivity)
         {
             this.CreateNew(NodeExtensions.RIGHT_ID);
         }
@@ -151,14 +242,17 @@ public class ThrowingSceneManager : MonoBehaviour
         {
             this.TryThrow(XRNode.RightHand);
         }
-        if (Input.GetButtonUp("MotionController-Grasp-Left"))
+        if (Input.GetAxis("MotionController-GraspedAmmount-Left") <= GripSensitivity && lastGripLeft     > GripSensitivity)
         {
             this.TryThrow(XRNode.LeftHand);
         }
-        if (Input.GetButtonUp("MotionController-Grasp-Rgiht"))
+        if (Input.GetAxis("MotionController-GraspedAmmount-Right") <= GripSensitivity && lastGripRight > GripSensitivity)
         {
             this.TryThrow(XRNode.RightHand);
         }
+
+        lastGripLeft = Input.GetAxis("MotionController-GraspedAmmount-Left");
+        lastGripRight = Input.GetAxis("MotionController-GraspedAmmount-Right");
     }
 
     private void InteractionManager_InteractionSourcePressed(InteractionSourcePressedEventArgs args)
@@ -232,7 +326,7 @@ public class ThrowingSceneManager : MonoBehaviour
             {
                 rigidbody = go.GetComponentInChildren<Rigidbody>();
             }
-            if (rigidbody.TryThrow(node))
+            if (rigidbody.TryThrow(node, velocityModifier))
             {
                 DetatchDevice(id);
             }
@@ -361,8 +455,8 @@ public class ThrowingSceneManager : MonoBehaviour
 
 public static class NodeExtensions
 {
-    public static uint LEFT_ID = 0;
-    public static uint RIGHT_ID = 1;
+    public static uint LEFT_ID = 0u;
+    public static uint RIGHT_ID = 1u;
 
     public static uint GetID(this XRNode node)
     {

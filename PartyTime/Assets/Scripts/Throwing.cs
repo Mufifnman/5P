@@ -100,7 +100,7 @@ public static class Throwing
         return true;
     }
 
-    public static bool TryThrow(this Rigidbody rb, XRNode throwingConctoller)
+    public static bool TryThrow(this Rigidbody rb, XRNode throwingConctoller, float Modifier)
     {
         Vector3 velocity, angularVelocity;
         if (!TryGetThrownObjectVelAngVel(throwingConctoller, rb.transform.TransformPoint(rb.centerOfMass), out velocity, out angularVelocity))
@@ -109,7 +109,7 @@ public static class Throwing
         }
 
         rb.angularVelocity = angularVelocity;
-        rb.velocity = velocity;
+        rb.velocity = velocity * Modifier;
         rb.isKinematic = false;
         return true;
     }
