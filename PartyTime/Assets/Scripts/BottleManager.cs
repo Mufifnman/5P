@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ThrowingHandManager : MonoBehaviour {
+public class BottleManager : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {

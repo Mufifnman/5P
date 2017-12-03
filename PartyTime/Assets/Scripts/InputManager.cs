@@ -27,6 +27,10 @@ public class InputManager : ImprovedSingletonBehavior<InputManager>
     private readonly Dictionary<uint, Transform> devices = new Dictionary<uint, Transform>();
     private readonly Dictionary<uint, int> modelIndecies = new Dictionary<uint, int>();
     private readonly Dictionary<uint, bool> isDetatched = new Dictionary<uint, bool>();
+    [HideInInspector]
+    public readonly Dictionary<uint, Vector3> LastVelocity = new Dictionary<uint, Vector3>();
+    [HideInInspector]
+    public readonly Dictionary<uint, Vector3> LastPositions = new Dictionary<uint, Vector3>();
 
     protected override void InitializeInternal()
     {
@@ -57,6 +61,7 @@ public class InputManager : ImprovedSingletonBehavior<InputManager>
     {
         InteractionManager.InteractionSourceReleased += InteractionManager_InteractionSourceReleased;
         InteractionManager.InteractionSourcePressed += InteractionManager_InteractionSourcePressed;
+        //ToDo add position and velocity tracking in OnInteractionUpdate event;
         Application.onBeforeRender += Application_onBeforeRender;
     }
 
@@ -116,6 +121,16 @@ public class InputManager : ImprovedSingletonBehavior<InputManager>
             var nodeType = id.GetNodeType();
             var position = InputTracking.GetLocalPosition(nodeType);
             var rotation = InputTracking.GetLocalRotation(nodeType);
+
+            XRNodeState nodeState;
+            if (Throwing.TryGetNodeState(nodeType, out nodeState))
+            {
+                Vector3 controllerVelocity;
+                nodeState.TryGetVelocity(out controllerVelocity);
+
+                LastVelocity[id] = controllerVelocity;
+                LastPositions[id] = position;
+            }
 
             SetTransform(devices[id], position, rotation);
         }
@@ -323,6 +338,8 @@ public class InputManager : ImprovedSingletonBehavior<InputManager>
             devices[id] = go.transform;
             modelIndecies[id] = index;
             isDetatched[id] = false;
+            LastVelocity[id] = Vector3.zero;
+            LastPositions[id] = Vector3.zero;
         }
     }
 
